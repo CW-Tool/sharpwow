@@ -104,29 +104,30 @@ namespace SharpWoW.Game
             {
                 if (mGamePath == null)
                 {
-                    if (loadGamePathSaved())
-                        return mGamePath;
+                    //if (loadGamePathSaved())
+                    //    return mGamePath;
 
-                    if (!loadGamePathRegistry() || BuildNumber != 12340)
-                    {
-                        bool abort = false;
-                        mGamePath = UI.ManualPathSelector.SelectPath(out abort);
-                        if (abort)
-                        {
-                            Shutdown();
-                            return "";
-                        }
+                    //if (!loadGamePathRegistry() || BuildNumber != 12340)
+                    //{
+                    //    bool abort = false;
+                    //    mGamePath = UI.ManualPathSelector.SelectPath(out abort);
+                    //    if (abort)
+                    //    {
+                    //        Shutdown();
+                    //        return "";
+                    //    }
 
-                        var res = MessageBox.Show("Would you like to store that path in a new registry key?", "Saving the path...", MessageBoxButtons.YesNo);
-                        if (res == DialogResult.Yes)
-                        {
-                            RegistryKey key = Registry.CurrentUser.OpenSubKey("Software\\Yias\\SharpWoW", true);
-                            if (key == null)
-                                key = Registry.CurrentUser.CreateSubKey("Software\\Yias\\SharpWoW");
+                    //    var res = MessageBox.Show("Would you like to store that path in a new registry key?", "Saving the path...", MessageBoxButtons.YesNo);
+                    //    if (res == DialogResult.Yes)
+                    //    {
+                    //        RegistryKey key = Registry.CurrentUser.OpenSubKey("Software\\Yias\\SharpWoW", true);
+                    //        if (key == null)
+                    //            key = Registry.CurrentUser.CreateSubKey("Software\\Yias\\SharpWoW");
 
-                            key.SetValue("StoredWoWPath", mGamePath);
-                        }
-                    }
+                    //        key.SetValue("StoredWoWPath", mGamePath);
+                    //    }
+                    //}
+                    mGamePath = "D:\\CW\\3\\World of Warcraft 3.3.5a.12340 enGB";
                 }
                 return mGamePath;
             }
