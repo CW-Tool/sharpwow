@@ -212,6 +212,8 @@ namespace SharpWoW.Stormlib
                 FileName = fileName;
                 foreach (KeyValuePair<string, IntPtr> hArchive in MPQArchiveLoader.Instance.Archives)
                 {
+                    //SFileOpenFileEx not able to open file, when we put a break point here we are able to
+                    //why
                     bool ret = MPQArchiveLoader.SFileOpenFileEx(hArchive.Value, fileName, 0, ref fileHandle);
                     if (ret)
                         break;
@@ -224,6 +226,21 @@ namespace SharpWoW.Stormlib
 
                 Load(fileHandle);
             }
+
+            FileName = fileName;
+            foreach (KeyValuePair<string, IntPtr> hArchive in MPQArchiveLoader.Instance.Archives)
+            {
+                bool ret = MPQArchiveLoader.SFileOpenFileEx(hArchive.Value, fileName, 0, ref fileHandle);
+                if (ret)
+                    break;
+                else
+                    fileHandle = IntPtr.Zero;
+            }
+
+            if (fileHandle == IntPtr.Zero)
+                throw new System.IO.FileNotFoundException("No MPQ-Archive contains the file!", fileName);
+
+            Load(fileHandle);
         }
 
         internal MPQFile()
