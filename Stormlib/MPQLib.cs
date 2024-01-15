@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using System.Runtime.InteropServices;
 using Microsoft.Win32;
 using System.IO;
-using System.Runtime.InteropServices.ComTypes;
 
 namespace SharpWoW.Stormlib
 {
@@ -175,13 +174,13 @@ namespace SharpWoW.Stormlib
 
         public string[] GetFiles()
         {
-            //IntPtr lf = IntPtr.Zero;
-            //bool ret = MPQArchiveLoader.SFileOpenFileEx(mHandle, "(listfile)", 0, ref lf);
-            //if (ret == false)
-            //    return new string[] { };
+            IntPtr lf = IntPtr.Zero;
+            bool ret = MPQArchiveLoader.SFileOpenFileEx(mHandle, "(listfile)", 0, ref lf);
+            if (ret == false)
+                return new string[] { };
 
             MPQFile file = new MPQFile();
-            file.Load(mHandle, "(listfile)");
+            file.Load(lf);
             var bytes = file.Read(file.FileSize);
             string fullStr = Encoding.UTF8.GetString(bytes);
             return fullStr.Split(new string[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries);
@@ -211,65 +210,58 @@ namespace SharpWoW.Stormlib
             lock (mAccessLock)
             {
                 FileName = fileName;
-
-                bool exist = false;
-                foreach (var val in MPQArchiveLoader.Instance.Archives)
+                foreach (KeyValuePair<string, IntPtr> hArchive in MPQArchiveLoader.Instance.Archives)
                 {
-                    if (MPQArchiveLoader.SFileHasFile(val.Value, fileName))
-                    {
-                        exist = true;
-                        Load(val.Value, fileName);
+                    //SFileOpenFileEx not able to open file, when we put a break point here we are able to
+                    //why
+                    bool ret = MPQArchiveLoader.SFileOpenFileEx(hArchive.Value, fileName, 0, ref fileHandle);
+                    if (ret)
                         break;
-                    }
+                    else
+                        fileHandle = IntPtr.Zero;
                 }
 
-                //foreach (KeyValuePair<string, IntPtr> hArchive in MPQArchiveLoader.Instance.Archives)
-                //{
-                //    //SFileOpenFileEx not able to open file, when we put a break point here we are able to
-                //    //why
-                //    bool ret = MPQArchiveLoader.SFileOpenFileEx(hArchive.Value, fileName, 0, ref fileHandle);
-                //    if (ret)
-                //        break;
-                //    else
-                //        fileHandle = IntPtr.Zero;
-                //}
+                if (fileHandle == IntPtr.Zero)
+                    throw new System.IO.FileNotFoundException("No MPQ-Archive contains the file!", fileName);
 
-                //if (fileHandle == IntPtr.Zero)
-                //    throw new System.IO.FileNotFoundException("No MPQ-Archive contains the file!", fileName);
-
-                //Load(fileHandle);
+                Load(fileHandle);
             }
 
+            FileName = fileName;
+            foreach (KeyValuePair<string, IntPtr> hArchive in MPQArchiveLoader.Instance.Archives)
+            {
+                bool ret = MPQArchiveLoader.SFileOpenFileEx(hArchive.Value, fileName, 0, ref fileHandle);
+                if (ret)
+                    break;
+                else
+                    fileHandle = IntPtr.Zero;
+            }
 
+            if (fileHandle == IntPtr.Zero)
+                throw new System.IO.FileNotFoundException("No MPQ-Archive contains the file!", fileName);
 
-           
+            Load(fileHandle);
         }
 
         internal MPQFile()
         {
         }
-        internal void Load(IntPtr archiveHandler, string filename)
+
+        internal void Load(IntPtr hFile)
         {
-            lock(mAccessLock)
-            {
-                IntPtr hFile = IntPtr.Zero;
-                bool ret = MPQArchiveLoader.SFileOpenFileEx(archiveHandler, filename, 0, ref hFile);
-                uint sizeHigh = 0;
-                uint fileSize = MPQArchiveLoader.SFileGetFileSize(hFile, ref sizeHigh);
+            uint sizeHigh = 0;
+            uint fileSize = MPQArchiveLoader.SFileGetFileSize(hFile, ref sizeHigh);
 
-                if (fileSize == 0)
-                    throw new System.IO.FileNotFoundException("No MPQ-Archive contains the file with valid size!", FileName);
+            if (fileSize == 0)
+                throw new System.IO.FileNotFoundException("No MPQ-Archive contains the file with valid size!", FileName);
 
-                fileData = new byte[fileSize];
-                int bytesRead = 0;
+            fileData = new byte[fileSize];
+            int bytesRead = 0;
 
-                FileSize = fileSize;
-                Position = 0;
-                MPQArchiveLoader.SFileReadFile(hFile, fileData, (int)fileSize, ref bytesRead, IntPtr.Zero);
-                MPQArchiveLoader.SFileCloseFile(hFile);
-
-            }
-
+            FileSize = fileSize;
+            Position = 0;
+            MPQArchiveLoader.SFileReadFile(hFile, fileData, (int)fileSize, ref bytesRead, IntPtr.Zero);
+            MPQArchiveLoader.SFileCloseFile(hFile);
         }
 
         public uint FileSize { get; private set; }
@@ -355,16 +347,16 @@ namespace SharpWoW.Stormlib
             return BitConverter.ToSingle(fileData, (int)Position - 4);
         }
 
-        //public static MPQFile FromHandle(IntPtr handle)
-        //{
-        //    if (handle == IntPtr.Zero)
-        //        return null;
+        public static MPQFile FromHandle(IntPtr handle)
+        {
+            if (handle == IntPtr.Zero)
+                return null;
 
-        //    MPQFile ret = new MPQFile();
-        //    ret.Load(handle);
-        //    ret.FileName = "";
-        //    return ret;
-        //}
+            MPQFile ret = new MPQFile();
+            ret.Load(handle);
+            ret.FileName = "";
+            return ret;
+        }
 
         public override bool CanRead { get { return true; } }
         public override bool CanSeek { get { return true; } }
