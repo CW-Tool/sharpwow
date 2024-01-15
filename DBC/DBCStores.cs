@@ -38,7 +38,7 @@ namespace SharpWoW.DBC
                     str += Spell[entry].Name + ", ";
             }
 
-            System.Windows.Forms.MessageBox.Show(str);
+            //System.Windows.Forms.MessageBox.Show(str);
             Map = new DBCFile<MapEntry>("DBFilesClient\\Map.dbc");
             LoadingScreen = new DBCFile<LoadingScreenEntry>("DBFilesClient\\LoadingScreens.dbc");
             AreaTable = new DBCFile<AreaTableEntry>("DBFilesClient\\AreaTable.dbc");
